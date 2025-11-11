@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Notificaciones</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2196F3">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemBox, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { background: white; border-radius: 20px; padding: 40px; max-width: 500px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        h1 { color: #333; margin-bottom: 10px; font-size: 28px; }
+        .subtitle { color: #666; margin-bottom: 30px; font-size: 14px; }
+        .status { padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 14px; font-weight: 500; }
+        .status.pending { background: #fff3cd; color: #856404; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        button { width: 100%; padding: 15px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-bottom: 10px; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-secondary { background: #f0f0f0; color: #333; }
+        .btn-delay { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white; }
+        .info-box { background: #e3f2fd; padding: 15px; border-radius: 10px; margin-top: 20px; font-size: 13px; color: #1565c0; }
+        #countdown { display: none; text-align: center; padding: 15px; background: #fff3cd; border-radius: 10px; margin-bottom: 10px; font-size: 18px; font-weight: bold; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 PWA Notificaciones</h1>
+        <p class="subtitle">Prueba de Web Push API</p>
+        <div id="status" class="status pending">Esperando acción...</div>
+        <button id="requestPermission" class="btn-primary">Solicitar Permiso de Notificaciones</button>
+        <button id="sendNotification" class="btn-primary" disabled>🚀 Notificación Inmediata</button>
+        <button id="sendDelayedNotification" class="btn-delay" disabled>⏰ Notificación en 10 seg</button>
+        <div id="countdown">⏰ Notificación en <span id="countdownTimer">10</span> segundos...<br><small style="font-size: 14px; font-weight: normal;">¡Cierra la app o bloquea el teléfono!</small></div>
+        <button id="sendNotificationWithActions" class="btn-secondary" disabled>Notificación con Acciones</button>
+        <div class="info-box"><strong>📱 iOS:</strong> 1. Safari → 2. Compartir → 3. Añadir a inicio → 4. Abrir desde icono → 5. Dar permisos</div>
+    </div>
+    <script>
+        const statusEl = document.getElementById('status');
+        const requestBtn = document.getElementById('requestPermission');
+        const sendBtn = document.getElementById('sendNotification');
+        const sendDelayedBtn = document.getElementById('sendDelayedNotification');
+        const sendActionsBtn = document.getElementById('sendNotificationWithActions');
+        const countdownEl = document.getElementById('countdown');
+        const countdownTimerEl = document.getElementById('countdownTimer');
+        let swRegistration;
+        
+        function updateStatus(msg, type = 'pending') {
+            statusEl.textContent = msg;
+            statusEl.className = 'status ' + type;
+        }
+        
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(function(reg) {
+                    swRegistration = reg;
+                    if (Notification.permission === 'granted') {
+                        updateStatus('✓ Permisos concedidos', 'success');
+                        sendBtn.disabled = false;
+                        sendDelayedBtn.disabled = false;
+                        sendActionsBtn.disabled = false;
+                    } else {
+                        updateStatus('✓ Listo. Solicita permisos', 'success');
+                    }
+                })
+                .catch(function(err) {
+                    updateStatus('❌ Error: ' + err.message, 'error');
+                });
+        }
+        
+        requestBtn.addEventListener('click', function() {
+            Notification.requestPermission().then(function(permission) {
+                if (permission === 'granted') {
+                    updateStatus('✓ ¡Permisos concedidos!', 'success');
+                    sendBtn.disabled = false;
+                    sendDelayedBtn.disabled = false;
+                    sendActionsBtn.disabled = false;
+                    requestBtn.textContent = '✓ Permisos Concedidos';
+                    requestBtn.disabled = true;
+                } else {
+                    updateStatus('❌ Permisos denegados', 'error');
+                }
+            }).catch(function(error) {
+                updateStatus('❌ Error: ' + error.message, 'error');
+            });
+        });
+        
+        sendBtn.addEventListener('click', function() {
+            if (swRegistration) {
+                swRegistration.showNotification('¡Prueba Inmediata! 🎉', {
+                    body: 'Notificación enviada al instante',
+                    icon: 'https://via.placeholder.com/192/667eea/fff?text=PWA',
+                    vibrate: [200, 100, 200]
+                });
+                updateStatus('✓ Notificación enviada', 'success');
+            }
+        });
+        
+        sendDelayedBtn.addEventListener('click', function() {
+            sendBtn.disabled = true;
+            sendActionsBtn.disabled = true;
+            sendDelayedBtn.disabled = true;
+            countdownEl.style.display = 'block';
+            
+            var seconds = 10;
+            countdownTimerEl.textContent = seconds;
+            
+            var countdownInterval = setInterval(function() {
+                seconds--;
+                countdownTimerEl.textContent = seconds;
+                if (seconds <= 0) clearInterval(countdownInterval);
+            }, 1000);
+            
+            setTimeout(function() {
+                if (swRegistration) {
+                    swRegistration.showNotification('¡Llegó! ⏰', {
+                        body: '¡La app estaba cerrada y aún así llegó! 🎉',
+                        icon: 'https://via.placeholder.com/192/ff6b6b/fff?text=⏰',
+                        vibrate: [200, 100, 200, 100, 200]
+                    });
+                    updateStatus('✓ Notificación con delay enviada', 'success');
+                }
+                countdownEl.style.display = 'none';
+                sendBtn.disabled = false;
+                sendActionsBtn.disabled = false;
+                sendDelayedBtn.disabled = false;
+            }, 10000);
+        });
+        
+        sendActionsBtn.addEventListener('click', function() {
+            if (swRegistration) {
+                swRegistration.showNotification('Interactiva 🎯', {
+                    body: 'Con botones de acción',
+                    icon: 'https://via.placeholder.com/192/764ba2/fff?text=🎯',
+                    requireInteraction: true,
+                    actions: [
+                        { action: 'confirm', title: '✓ Confirmar' },
+                        { action: 'cancel', title: '✗ Cancelar' }
+                    ]
+                });
+                updateStatus('✓ Notificación enviada', 'success');
+            }
+        });
+    </script>
+</body>
+</html>
