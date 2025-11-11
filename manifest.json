@@ -1,7 +1,7 @@
 {
   "name": "PWA Notificaciones",
   "short_name": "PWA Notif",
-  "start_url": "/pwa-notificaciones/"
+  "start_url": "/pwa-notificaciones/",
   "display": "standalone",
   "background_color": "#667eea",
   "theme_color": "#2196F3",
