@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#2196F3">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemBox, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .container { background: white; border-radius: 20px; padding: 40px; max-width: 500px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
         h1 { color: #333; margin-bottom: 10px; font-size: 28px; }
         .subtitle { color: #666; margin-bottom: 30px; font-size: 14px; }
@@ -35,7 +35,7 @@
         <button id="sendDelayedNotification" class="btn-delay" disabled>⏰ Notificación en 10 seg</button>
         <div id="countdown">⏰ Notificación en <span id="countdownTimer">10</span> segundos...<br><small style="font-size: 14px; font-weight: normal;">¡Cierra la app o bloquea el teléfono!</small></div>
         <button id="sendNotificationWithActions" class="btn-secondary" disabled>Notificación con Acciones</button>
-        <div class="info-box"><strong>📱 iOS:</strong> 1. Safari → 2. Compartir → 3. Añadir a inicio → 4. Abrir desde icono → 5. Dar permisos</div>
+        <div class="info-box"><strong>📱 Instrucciones:</strong><br>1. Safari → 2. Compartir → 3. Añadir a inicio → 4. Abrir desde icono → 5. Dar permisos<br><br><strong>⏰ Para probar delay:</strong> Pulsa el botón naranja y CIERRA la app inmediatamente. La notificación llegará a los 10 segundos aunque esté cerrada.</div>
     </div>
     <script>
         const statusEl = document.getElementById('status');
@@ -47,7 +47,8 @@
         const countdownTimerEl = document.getElementById('countdownTimer');
         let swRegistration;
         
-        function updateStatus(msg, type = 'pending') {
+        function updateStatus(msg, type) {
+            type = type || 'pending';
             statusEl.textContent = msg;
             statusEl.className = 'status ' + type;
         }
@@ -113,20 +114,22 @@
                 if (seconds <= 0) clearInterval(countdownInterval);
             }, 1000);
             
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'SCHEDULE_NOTIFICATION',
+                    delay: 10000
+                });
+                updateStatus('⏰ Notificación programada para 10 seg', 'success');
+            } else {
+                updateStatus('❌ Service Worker no disponible', 'error');
+            }
+            
             setTimeout(function() {
-                if (swRegistration) {
-                    swRegistration.showNotification('¡Llegó! ⏰', {
-                        body: '¡La app estaba cerrada y aún así llegó! 🎉',
-                        icon: 'https://via.placeholder.com/192/ff6b6b/fff?text=⏰',
-                        vibrate: [200, 100, 200, 100, 200]
-                    });
-                    updateStatus('✓ Notificación con delay enviada', 'success');
-                }
                 countdownEl.style.display = 'none';
                 sendBtn.disabled = false;
                 sendActionsBtn.disabled = false;
                 sendDelayedBtn.disabled = false;
-            }, 10000);
+            }, 10500);
         });
         
         sendActionsBtn.addEventListener('click', function() {
